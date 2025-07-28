@@ -36,12 +36,12 @@ public class PlayerController : MonoBehaviour
         if (isClimbing)
         {
             float climbInput = Input.GetAxis("Vertical");
-            rb.velocity = new Vector3(0, climbInput * climbSpeed, 0);
+            rb.linearVelocity = new Vector3(0, climbInput * climbSpeed, 0);
         }
         else
         {
             Vector3 move = new Vector3(moveInput * moveSpeed, rb.velocity.y, 0);
-            rb.velocity = move;
+            rb.linearVelocity = move;
         }
 
         if (transform.position.y < fallThresholdY)
@@ -54,7 +54,7 @@ public class PlayerController : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded && !isClimbing)
         {
-            rb.velocity = new Vector3(rb.velocity.x, jumpForce, rb.velocity.z);
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpForce, rb.linearVelocity.z);
         }
 
         if (Input.GetKeyDown(KeyCode.F) && canClimb)
@@ -70,7 +70,7 @@ public class PlayerController : MonoBehaviour
         if (isClimbing)
         {
             rb.useGravity = false;
-            rb.velocity = Vector3.zero;
+            rb.linearVelocity = Vector3.zero;
         }
         else
         {
@@ -116,7 +116,7 @@ public class PlayerController : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        rb.velocity = Vector3.zero;
+        rb.linearVelocity = Vector3.zero;
         rb.useGravity = false;
         Debug.Log("Player Died");
 
@@ -126,7 +126,7 @@ public class PlayerController : MonoBehaviour
     private void Respawn()
     {
         transform.position = respawnPoint.position;
-        rb.velocity = Vector3.zero;
+        rb.linearVelocity = Vector3.zero;
         rb.useGravity = true;
         isDead = false;
     }
