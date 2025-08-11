@@ -1,133 +1,63 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(CharacterController))]
+[RequireComponent(typeof(Animator))]
 public class PlayerController : MonoBehaviour
 {
-    [Header("Movement Settings")]
+    [Header("Movement")]
     public float moveSpeed = 5f;
-    public float jumpForce = 7f;
-    public float climbSpeed = 4f;
-    public LayerMask groundLayer;
 
-    [Header("Death & Respawn")]
-    public float fallThresholdY = -10f;
-    public Transform respawnPoint;
-    public float respawnDelay = 1f;
+    [Header("Jump / Gravity")]
+    public float jumpHeight = 2f;
+    public float gravity = -9.81f;
 
-    private Rigidbody rb;
+    [Header("Ground Check")]
+    public Transform groundCheck;
+    public float groundDistance = 0.2f;
+    public LayerMask groundMask;
+
+    private CharacterController controller;
+    private Animator animator;
+    private Vector3 velocity;
     private bool isGrounded;
-    private bool canClimb = false; // ผู้เล่นอยู่ในเขตปีนได้ไหม
-    private bool isClimbing = false; // ผู้เล่นกำลังปีนอยู่ไหม
-    private bool isDead = false;
 
     void Start()
     {
-        rb = GetComponent<Rigidbody>();
-    }
-
-    void FixedUpdate()
-    {
-        if (isDead) return;
-
-        CheckGrounded();
-
-        float moveInput = Input.GetAxis("Horizontal");
-
-        if (isClimbing)
-        {
-            float climbInput = Input.GetAxis("Vertical");
-            rb.linearVelocity = new Vector3(0, climbInput * climbSpeed, 0);
-        }
-        else
-        {
-            Vector3 move = new Vector3(moveInput * moveSpeed, rb.velocity.y, 0);
-            rb.linearVelocity = move;
-        }
-
-        if (transform.position.y < fallThresholdY)
-        {
-            Die();
-        }
+        controller = GetComponent<CharacterController>();
+        animator = GetComponent<Animator>();
     }
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded && !isClimbing)
+        // Ground check
+        isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
+        if (isGrounded && velocity.y < 0f)
         {
-            rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpForce, rb.linearVelocity.z);
+            velocity.y = -2f;
+            animator.SetBool("isJumping", false);
         }
 
-        if (Input.GetKeyDown(KeyCode.F) && canClimb)
+        // Horizontal movement
+        float x = Input.GetAxis("Horizontal");
+        Vector3 move = new Vector3(x, 0f, 0f);
+        controller.Move(move * moveSpeed * Time.deltaTime);
+        animator.SetFloat("Speed", Mathf.Abs(x));
+
+        // Rotate to face left/right only
+        if (x > 0.05f)
+            transform.rotation = Quaternion.Euler(0f, 90f, 0f);   // face right
+        else if (x < -0.05f)
+            transform.rotation = Quaternion.Euler(0f, -90f, 0f);  // face left
+
+        // Jump
+        if (Input.GetButtonDown("Jump") && isGrounded)
         {
-            ToggleClimb();
+            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            animator.SetBool("isJumping", true);
         }
-    }
 
-    private void ToggleClimb()
-    {
-        isClimbing = !isClimbing;
-
-        if (isClimbing)
-        {
-            rb.useGravity = false;
-            rb.linearVelocity = Vector3.zero;
-        }
-        else
-        {
-            rb.useGravity = true;
-        }
-    }
-
-    private void CheckGrounded()
-    {
-        Ray ray = new Ray(transform.position, Vector3.down);
-        isGrounded = Physics.Raycast(ray, 1.1f, groundLayer);
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Ladder"))
-        {
-            canClimb = true;
-            Debug.Log("เข้าสู่เขตปีนได้");
-        }
-        else if (other.CompareTag("Trap"))
-        {
-            Die();
-        }
-    }
-
-
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Ladder"))
-        {
-            canClimb = false;
-
-            if (isClimbing)
-            {
-                ToggleClimb(); // ถ้าเดินออกจากบันไดขณะปีนอยู่ ให้หยุดปีนทันที
-            }
-        }
-    }
-
-    private void Die()
-    {
-        if (isDead) return;
-        isDead = true;
-
-        rb.linearVelocity = Vector3.zero;
-        rb.useGravity = false;
-        Debug.Log("Player Died");
-
-        Invoke(nameof(Respawn), respawnDelay);
-    }
-
-    private void Respawn()
-    {
-        transform.position = respawnPoint.position;
-        rb.linearVelocity = Vector3.zero;
-        rb.useGravity = true;
-        isDead = false;
+        // Gravity
+        velocity.y += gravity * Time.deltaTime;
+        controller.Move(velocity * Time.deltaTime);
     }
 }
