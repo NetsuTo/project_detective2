@@ -18,21 +18,18 @@ public class InventoryUI : MonoBehaviour
     {
         Debug.Log("Refresh UI: จำนวนช่อง = " + InventorySystem.instance.items.Count);
 
-        // ล้างช่องเก่าก่อน
         foreach (Transform child in slotParent)
-        {
             Destroy(child.gameObject);
-        }
 
-        // วนตามของทุกชิ้น ? แสดงทุกชิ้นแม้ชนิดเดียวกัน
         foreach (ItemData item in InventorySystem.instance.items)
         {
-            GameObject slot = Instantiate(slotPrefab, slotParent);
-            slot.GetComponent<Image>().sprite = item.icon;
-
-            // เคลียร์จำนวนถ้ามี
-            Text text = slot.GetComponentInChildren<Text>();
-            if (text != null) text.text = "";
+            GameObject slotGO = Instantiate(slotPrefab, slotParent);
+            var invSlot = slotGO.GetComponent<InventorySlot>();
+            if (invSlot != null)
+            {
+                invSlot.SetItem(item);
+            }
         }
     }
+
 }
