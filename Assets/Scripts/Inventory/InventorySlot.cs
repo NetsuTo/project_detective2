@@ -1,9 +1,14 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
-public class InventorySlot : MonoBehaviour
+public class InventorySlot : MonoBehaviour, IPointerClickHandler
 {
-    public Image icon;    // ลาก Image ของ "Icon" ลูกเข้ามา
+    [Header("UI")]
+    public Image icon;
+    public Image highlight;
+
+    [Header("Data")]
     public ItemData item;
 
     public void SetItem(ItemData newItem)
@@ -11,21 +16,37 @@ public class InventorySlot : MonoBehaviour
         item = newItem;
         if (icon != null)
         {
-            if (item != null && item.icon != null)
-            {
-                icon.sprite = item.icon;
-                icon.enabled = true;
-            }
-            else
-            {
-                icon.sprite = null;
-                icon.enabled = false;
-            }
+            icon.enabled = item != null;
+            icon.sprite = item != null ? item.icon : null;
         }
+        SetSelected(false);
     }
 
-    public void Clear()
+    public void Clear() => SetItem(null);
+
+    public void SetSelected(bool selected)
     {
-        SetItem(null);
+        if (highlight != null) highlight.enabled = selected;
     }
+
+    public void OnPointerClick(PointerEventData e)
+    {
+        if (item == null) return;
+
+        // อนุญาตก็ต่อเมื่ออยู่ในโซน (แฟล็กกลางถูกตั้งจาก PlayerController)
+        if (!InventorySystem.instance.canUseItems)
+        {
+            Debug.Log("ต้องยืนอยู่ใน UseZone ก่อนถึงจะใช้ไอเท็มได้");
+            return;
+        }
+
+        InventorySystem.instance.SelectItem(item);
+        SetSelected(true);
+
+        var player = FindFirstObjectByType<PlayerController>();
+        if (player != null) player.TryUseSelectedInZone();
+    }
+
+
+
 }

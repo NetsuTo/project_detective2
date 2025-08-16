@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
@@ -16,6 +17,11 @@ public class PlayerController : MonoBehaviour
     public float groundDistance = 0.2f;
     public LayerMask groundMask;
 
+    // ===== Use Zone (รองรับหลายโซน) =====
+    [Header("Use Zone")]
+    public UseZone currentUseZone;                 // โซนที่ใช้งานอยู่
+    private readonly HashSet<UseZone> zonesIn = new HashSet<UseZone>(); // โซนทั้งหมดที่กำลังยืนอยู่
+
     private CharacterController controller;
     private Animator animator;
     private Vector3 velocity;
@@ -25,6 +31,10 @@ public class PlayerController : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
+
+        // เริ่มเกม: ยังไม่อยู่ในโซน ? ห้ามใช้ไอเท็ม + ปิดปุ่ม
+        if (InventorySystem.instance != null) InventorySystem.instance.canUseItems = false;
+        if (InventoryUI.instance != null) InventoryUI.instance.SetSlotsInteractable(false);
     }
 
     void Update()
@@ -37,17 +47,15 @@ public class PlayerController : MonoBehaviour
             animator.SetBool("isJumping", false);
         }
 
-        // Horizontal movement
+        // Horizontal movement (แกน X)
         float x = Input.GetAxis("Horizontal");
         Vector3 move = new Vector3(x, 0f, 0f);
         controller.Move(move * moveSpeed * Time.deltaTime);
         animator.SetFloat("Speed", Mathf.Abs(x));
 
-        // Rotate to face left/right only
-        if (x > 0.05f)
-            transform.rotation = Quaternion.Euler(0f, 90f, 0f);   // face right
-        else if (x < -0.05f)
-            transform.rotation = Quaternion.Euler(0f, -90f, 0f);  // face left
+        // หันซ้าย/ขวา
+        if (x > 0.05f) transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+        else if (x < -0.05f) transform.rotation = Quaternion.Euler(0f, -90f, 0f);
 
         // Jump
         if (Input.GetButtonDown("Jump") && isGrounded)
@@ -59,5 +67,111 @@ public class PlayerController : MonoBehaviour
         // Gravity
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
+
+        // หมายเหตุ: การ "ใช้ไอเท็ม" เรียกจาก InventorySlot ? player.TryUseSelectedInZone()
+    }
+
+    // ========== เลือกโซนที่ดีที่สุด เมื่อมีหลายโซน ==========
+    private void RecomputeCurrentZone()
+    {
+        UseZone best = null;
+        float bestDist = float.MaxValue;
+        int bestPriority = int.MinValue;
+
+        Vector3 p = transform.position;
+
+        foreach (var z in zonesIn)
+        {
+            if (z == null) continue;
+            var col = z.GetComponent<Collider>();
+            if (col == null) continue;
+
+            // เลือกตาม priority ก่อน
+            if (z.priority > bestPriority)
+            {
+                best = z;
+                bestPriority = z.priority;
+                bestDist = Vector3.SqrMagnitude(col.bounds.ClosestPoint(p) - p);
+                continue;
+            }
+            if (z.priority < bestPriority) continue;
+
+            // priority เท่ากัน ? เลือกอันที่ใกล้กว่า
+            float d = Vector3.SqrMagnitude(col.bounds.ClosestPoint(p) - p);
+            if (d < bestDist)
+            {
+                best = z;
+                bestDist = d;
+            }
+        }
+
+        currentUseZone = best;
+
+        bool inAnyZone = currentUseZone != null;
+        // เปิด/ปิดสิทธิ์การใช้ไอเท็ม
+        if (InventorySystem.instance != null) InventorySystem.instance.canUseItems = inAnyZone;
+        // เทาปุ่ม/เปิดปุ่มใน UI
+        if (InventoryUI.instance != null) InventoryUI.instance.SetSlotsInteractable(inAnyZone);
+
+        // Debug:
+        // if (inAnyZone) Debug.Log($"[Zone] Active: {currentUseZone.zoneName}");
+        // else Debug.Log("[Zone] None");
+    }
+
+    // ========== ใช้ไอเท็มกับโซนปัจจุบัน ==========
+    public void TryUseSelectedInZone()
+    {
+        if (currentUseZone == null)
+        {
+            Debug.Log("ยังไม่ได้ยืนอยู่ในโซนใช้งาน");
+            return;
+        }
+
+        var selected = InventorySystem.instance.selectedItem;
+        if (selected == null)
+        {
+            Debug.Log("ยังไม่ได้เลือกไอเท็มจากกระเป๋า");
+            return;
+        }
+
+        if (currentUseZone.TryUse(selected))
+        {
+            InventorySystem.instance.ConsumeOne(selected);
+            Debug.Log($"ใช้ไอเท็ม {selected.itemName} กับโซน {currentUseZone.zoneName} สำเร็จ");
+        }
+        else
+        {
+            Debug.Log($"ไอเท็ม {selected.itemName} ใช้กับโซน {currentUseZone.zoneName} ไม่ได้");
+        }
+    }
+
+    // ========== Trigger: เข้า/ออกหลายโซนได้พร้อมกัน ==========
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.TryGetComponent(out UseZone zone))
+        {
+            zonesIn.Add(zone);
+            RecomputeCurrentZone();
+            // Debug.Log($"[Zone] Enter: {zone.zoneName}");
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.TryGetComponent(out UseZone zone))
+        {
+            zonesIn.Remove(zone);
+            RecomputeCurrentZone();
+            // Debug.Log($"[Zone] Exit: {zone.zoneName}");
+        }
+    }
+
+    // ป้องกันค้างค่าเมื่อ Player ถูกปิดใช้งาน
+    private void OnDisable()
+    {
+        zonesIn.Clear();
+        currentUseZone = null;
+        if (InventorySystem.instance != null) InventorySystem.instance.canUseItems = false;
+        if (InventoryUI.instance != null) InventoryUI.instance.SetSlotsInteractable(false);
     }
 }
