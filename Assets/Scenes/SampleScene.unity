@@ -1879,8 +1879,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bad39f5d230320648ba3ccf182800467, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  craftSlots: []
-  recipes: []
+  craftSlots:
+  - {fileID: 1952116859}
+  - {fileID: 53810723}
+  recipes:
+  - {fileID: 11400000, guid: 35d26db588842c84b8b9c6e2402aa46b, type: 2}
 --- !u!1 &1783694555
 GameObject:
   m_ObjectHideFlags: 0
