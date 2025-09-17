@@ -4056,8 +4056,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49ba0e491eca9ba49b44cfebe44e43ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  target: {fileID: 2081015477}
-  offset: {x: 0, y: 3.5, z: -20}
+  target: {fileID: 2010367594}
+  offset: {x: 0, y: 1, z: -20}
   smoothSpeed: 5
 --- !u!1 &981105854
 GameObject:
@@ -4793,6 +4793,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 3612d6bb5c5888642a02de8e44eca82e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 268642085}
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 3612d6bb5c5888642a02de8e44eca82e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2010367594}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 3612d6bb5c5888642a02de8e44eca82e, type: 3}
       insertIndex: -1
@@ -8666,6 +8669,37 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!1 &2010367593
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2010367594}
+  m_Layer: 0
+  m_Name: CameraLock
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2010367594
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2010367593}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0, y: 3.16, z: 7.25}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2081015477}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2034032581
 GameObject:
   m_ObjectHideFlags: 0
