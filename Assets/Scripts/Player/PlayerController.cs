@@ -32,9 +32,27 @@ public class PlayerController : MonoBehaviour
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
 
-        // เริ่มเกม: ยังไม่อยู่ในโซน ? ห้ามใช้ไอเท็ม + ปิดปุ่ม
-        if (InventorySystem.instance != null) InventorySystem.instance.canUseItems = false;
-        if (InventoryUI.instance != null) InventoryUI.instance.SetSlotsInteractable(false);
+        // ? สแกนว่าตอน spawn ยืนคร่อมโซนใดอยู่หรือไม่
+        ScanZonesAtStart();
+    }
+
+    private void ScanZonesAtStart()
+    {
+        zonesIn.Clear();
+
+        var allZones = FindObjectsOfType<UseZone>(true);
+        Vector3 p = transform.position;
+        foreach (var z in allZones)
+        {
+            var col = z.GetComponent<Collider>();
+            if (col == null) continue;
+
+            // ถ้า player อยู่ใน bounds ของโซนตั้งแต่เริ่ม ? เพิ่มเข้าชุด
+            if (col.bounds.Contains(p))
+                zonesIn.Add(z);
+        }
+
+        RecomputeCurrentZone(); // จะเป็นคนเปิด/ปิด canUseItems และ UI ให้เอง
     }
 
     void Update()
@@ -108,14 +126,6 @@ public class PlayerController : MonoBehaviour
         currentUseZone = best;
 
         bool inAnyZone = currentUseZone != null;
-        // เปิด/ปิดสิทธิ์การใช้ไอเท็ม
-        if (InventorySystem.instance != null) InventorySystem.instance.canUseItems = inAnyZone;
-        // เทาปุ่ม/เปิดปุ่มใน UI
-        if (InventoryUI.instance != null) InventoryUI.instance.SetSlotsInteractable(inAnyZone);
-
-        // Debug:
-        // if (inAnyZone) Debug.Log($"[Zone] Active: {currentUseZone.zoneName}");
-        // else Debug.Log("[Zone] None");
     }
 
     // ========== ใช้ไอเท็มกับโซนปัจจุบัน ==========
@@ -126,23 +136,6 @@ public class PlayerController : MonoBehaviour
             Debug.Log("ยังไม่ได้ยืนอยู่ในโซนใช้งาน");
             return;
         }
-
-        var selected = InventorySystem.instance.selectedItem;
-        if (selected == null)
-        {
-            Debug.Log("ยังไม่ได้เลือกไอเท็มจากกระเป๋า");
-            return;
-        }
-
-        if (currentUseZone.TryUse(selected))
-        {
-            InventorySystem.instance.ConsumeOne(selected);
-            Debug.Log($"ใช้ไอเท็ม {selected.itemName} กับโซน {currentUseZone.zoneName} สำเร็จ");
-        }
-        else
-        {
-            Debug.Log($"ไอเท็ม {selected.itemName} ใช้กับโซน {currentUseZone.zoneName} ไม่ได้");
-        }
     }
 
     // ========== Trigger: เข้า/ออกหลายโซนได้พร้อมกัน ==========
@@ -152,7 +145,6 @@ public class PlayerController : MonoBehaviour
         {
             zonesIn.Add(zone);
             RecomputeCurrentZone();
-            // Debug.Log($"[Zone] Enter: {zone.zoneName}");
         }
     }
 
@@ -162,16 +154,6 @@ public class PlayerController : MonoBehaviour
         {
             zonesIn.Remove(zone);
             RecomputeCurrentZone();
-            // Debug.Log($"[Zone] Exit: {zone.zoneName}");
         }
-    }
-
-    // ป้องกันค้างค่าเมื่อ Player ถูกปิดใช้งาน
-    private void OnDisable()
-    {
-        zonesIn.Clear();
-        currentUseZone = null;
-        if (InventorySystem.instance != null) InventorySystem.instance.canUseItems = false;
-        if (InventoryUI.instance != null) InventoryUI.instance.SetSlotsInteractable(false);
     }
 }
